@@ -7,8 +7,23 @@ import { Region } from '../interfaces/region.type';
 
 @Injectable({ providedIn: 'root' })
 export class CountriesService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.loadFromLocalStorage();
+  }
   private readonly apiUrl: string = 'https://restcountries.com/v3.1';
+
+  private saveToLocalStorage() {
+    localStorage.setItem('cacheStore', JSON.stringify(this.cacheStore));
+  }
+
+  private loadFromLocalStorage() {
+    if (localStorage.getItem('cacheStore')) {
+      this.cacheStore = JSON.parse(
+        localStorage.getItem('cacheStore')!
+      ) as ChacheStore;
+    }
+  }
+
   public cacheStore: ChacheStore = {
     byCapital: { term: '', countries: [] as Country[] },
     byCountries: { term: '', countries: [] as Country[] },
@@ -21,22 +36,23 @@ export class CountriesService {
 
   searchCapital(term: string): Observable<Country[]> {
     return this.getCountriesRequest(`${this.apiUrl}/capital/${term}`).pipe(
-      tap((countries) => (this.cacheStore.byCapital = { term, countries }))
+      tap((countries) => (this.cacheStore.byCapital = { term, countries })),
+      tap(() => this.saveToLocalStorage())
     );
   }
 
   searchCountry(term: string): Observable<Country[]> {
-    return this.getCountriesRequest(`${this.apiUrl}/name/${term}`)
-      .pipe(
-        tap((countries) => (this.cacheStore.byCountries = { term, countries })
-      ));
+    return this.getCountriesRequest(`${this.apiUrl}/name/${term}`).pipe(
+      tap((countries) => (this.cacheStore.byCountries = { term, countries })),
+      tap(() => this.saveToLocalStorage())
+    );
   }
 
   searchRegion(region: Region): Observable<Country[]> {
-    return this.getCountriesRequest(`${this.apiUrl}/region/${region}`)
-      .pipe(
-        tap(countries => this.cacheStore.byRegion = { region, countries })
-      )
+    return this.getCountriesRequest(`${this.apiUrl}/region/${region}`).pipe(
+      tap((countries) => (this.cacheStore.byRegion = { region, countries })),
+      tap(() => this.saveToLocalStorage())
+    );
   }
 
   searchCountryByAlpha(id: string): Observable<Country | null> {
